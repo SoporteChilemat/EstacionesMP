@@ -574,7 +574,7 @@ public class Procedures {
             column.setCellEditor(table.getDefaultEditor(Boolean.class));
             column.setCellRenderer(table.getDefaultRenderer(Boolean.class));
         }
-        
+
         table.setRowHeight(25);
         table.setShowHorizontalLines(true);
         table.setShowVerticalLines(true);
@@ -757,38 +757,51 @@ public class Procedures {
         l.jLabel2.setText("Obteniendo Información de Guia N°" + guia);
         l.setLocationRelativeTo(Main.frame);
 
+        /*
+                        MODIFICADO
+        Se eliminaron los IF anidados para una mejor lectura.
+        Se crea la funcion messageError, para no repetir codigo.
+            Ideal repetir proceso de IF para las demas funciones
+         */
         CompletableFuture.runAsync(() -> {
             l.setVisible(true);
             Guia g = Functions.getGuia(guia);
             l.jLabel2.setText("Ingresando Guia N°" + guia);
             esperar(2000);
-            if (g.getGuia() > 0) {
-                if (CRUD_Guias.ingresarGuia(g)) {
-                    if (CRUD_Productos.ingresarProductos(g.getDetalle(), g.getGuia())) {
-                        if (CRUD_Cotizaciones.setGuiaCotizacion(Integer.parseInt(coti), Integer.parseInt(guia))) {
-                            l.dispose();
-
-                            DefaultTableModel model = (DefaultTableModel) table.getModel();
-                            Object[] agregar = Functions.agregarGuia(g);
-                            JOptionPane.showConfirmDialog(Main.frame, "¡ Guia N°" + guia + " Registrada con exito !", "LOGRADO", JOptionPane.DEFAULT_OPTION, 1, Functions.imagenCheck());
-                            model.addRow(agregar);
-                            table.repaint();
-
-                        } else {
-                            l.dispose();
-                            JOptionPane.showMessageDialog(Main.frame, "No se pudo parear la Guia N°" + guia + " con la Cotización " + coti, "ERROR", JOptionPane.ERROR_MESSAGE);
-                        }
-                    } else {
-                        l.dispose();
-                        JOptionPane.showMessageDialog(Main.frame, "No se pudo registrar los productos de la Guia N°" + guia, "ERROR", JOptionPane.ERROR_MESSAGE);
-                    }
-                } else {
-                    l.dispose();
-                    JOptionPane.showMessageDialog(Main.frame, "No se pudo registrar la Guia N°" + guia, "ERROR", JOptionPane.ERROR_MESSAGE);
-                }
+            if (g.getGuia() <= 0) {
+                l.dispose();
+                messageError("Guia N°" + guia + " invalida");
+                return;
             }
+            if (!CRUD_Guias.ingresarGuia(g)) {
+                l.dispose();
+                messageError("No se pudo registrar la Guia N°" + guia);
+                return;
+            }
+            if (!CRUD_Productos.ingresarProductos(g.getDetalle(), g.getGuia())) {
+                l.dispose();
+                messageError("No se pudo registrar los productos de la Guia N°" + guia);
+                return;
+            }
+            if (!CRUD_Cotizaciones.setGuiaCotizacion(Integer.parseInt(coti), Integer.parseInt(guia))) {
+                l.dispose();
+                messageError("No se pudo parear la Guia N°" + guia + " con la Cotización " + coti);
+                return;
+            }
+
+            l.dispose();
+            DefaultTableModel model = (DefaultTableModel) table.getModel();
+            Object[] agregar = Functions.agregarGuia(g);
+            model.addRow(agregar);
+            table.repaint();
             Procedures.setGuiaTablaCoti(coti, tableCoti, g.getGuia());
+
+            JOptionPane.showConfirmDialog(Main.frame, "¡ Guia N°" + guia + " Registrada con exito !", "LOGRADO", JOptionPane.DEFAULT_OPTION, 1, Functions.imagenCheck());
         });
+    }
+
+    public static void messageError(String message) {
+        JOptionPane.showMessageDialog(Main.frame, message, "ERROR", JOptionPane.ERROR_MESSAGE);
     }
 
     public static void esperar(int miliSeg) {
